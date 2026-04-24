@@ -1,0 +1,40 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "reddit-stocks-digest-worker",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-04-23",
+  "workers_dev": true,
+  "preview_urls": false,
+  "observability": {
+    "enabled": true
+  },
+  "kv_namespaces": [
+    {
+      "binding": "HEARTBEAT_KV",
+      "id": "c272e0e9edb44884a6309061e02145d9",
+      "preview_id": "0b109be6c49b4b0a9d5d5841b4937082"
+    }
+  ],
+  "ai": {
+    "binding": "AI"
+  },
+  "d1_databases": [
+    {
+      "binding": "SUMMARIES_DB",
+      "database_name": "reddit-stocks-digest",
+      "database_id": "d34eda94-16d6-4390-9980-89978244467d",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "triggers": {
+    "crons": ["0 */6 * * *"]
+  },
+  "vars": {
+    "POST_LIMIT": "20",
+    "REQUEST_TIMEOUT_MS": "15000",
+    "LLM_MODEL": "@cf/meta/llama-3.1-8b-instruct",
+    "HEARTBEAT_INTERVAL_HOURS": "24",
+    "FAILURE_ALERT_THRESHOLD": "1",
+    "FAILURE_ALERT_COOLDOWN_MINUTES": "180"
+  }
+}

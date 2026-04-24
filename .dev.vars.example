@@ -1,0 +1,5 @@
+FEISHU_WEBHOOK=https://open.feishu.cn/open-apis/bot/v2/hook/your-webhook-id
+FEISHU_SECRET=your-feishu-secret
+MANUAL_TRIGGER_TOKEN=replace-with-a-random-token
+LLM_MODEL=@cf/meta/llama-3.1-8b-instruct
+REDDIT_COOKIE=
