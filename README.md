@@ -4,11 +4,12 @@ Cloudflare Worker：定时抓取 Reddit `r/stocks` 热门帖子，调用 Cloudfl
 
 ## 功能
 
-- 每 6 小时抓取一次 `r/stocks` 热门帖子
+- 每 3 小时抓取一次 `r/stocks` 热门帖子
 - 优先走 Cloudflare Workers AI 生成简短中文财经摘要
 - LLM 不可用时自动回退到原始热门帖子列表
 - 使用 KV 保存心跳、最近成功/失败时间、连续失败次数
 - 使用 D1 仅保存最终生成的摘要结果，不保存原始帖子历史
+- 额外生成超详细版 Markdown 报告并上传到腾讯云 COS
 - 提供 `/health` 健康检查
 - 提供 `/admin/trigger` 手动触发接口（Bearer Token）
 - GitHub Actions CI + Cloudflare 自动部署
@@ -40,6 +41,11 @@ npm run dev
 - `FEISHU_SECRET`
 - `MANUAL_TRIGGER_TOKEN`
 - `REDDIT_COOKIE`（可选；当 Reddit 未登录抓取被风控时可配置）
+- `TENCENT_COS_SECRET_ID`
+- `TENCENT_COS_SECRET_KEY`
+- `TENCENT_COS_BUCKET`
+- `TENCENT_COS_REGION`
+- `TENCENT_COS_BASE_URL`（可选，自定义访问域名）
 
 ### Cloudflare 资源绑定
 
@@ -77,4 +83,4 @@ npm run deploy
 - `FEISHU_SECRET`
 - `MANUAL_TRIGGER_TOKEN`
 
-部署前还需要确保 `wrangler.jsonc` 中的 `HEARTBEAT_KV` 和 `SUMMARIES_DB` 绑定已经替换为真实 Cloudflare 资源 ID。
+部署前还需要确保 `wrangler.jsonc` 中的 `AI`、`HEARTBEAT_KV` 和 `SUMMARIES_DB` 绑定已经配置正确。

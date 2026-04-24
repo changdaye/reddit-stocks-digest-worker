@@ -20,42 +20,49 @@ function makePost(overrides: Partial<RedditPost> = {}): RedditPost {
 }
 
 describe("buildDigestMessage", () => {
-  it("formats AI digest header and analysis", () => {
+  it("formats AI digest header and analysis without timestamp", () => {
     const posts = [makePost({ title: "AAPL earnings beat" })];
-    const result = buildDigestMessage("市场情绪偏多，科技股讨论热度较高。", posts, new Date("2026-04-23T06:00:00Z"));
-    expect(result).toContain("Reddit r/stocks 财经日报");
-    expect(result).toContain("2026-04-23 06:00 UTC");
+    const result = buildDigestMessage("市场情绪偏多，科技股讨论热度较高。", posts, "", new Date("2026-04-23T06:00:00Z"));
+    expect(result).not.toContain("2026-04-23 06:00 UTC");
     expect(result).toContain("市场情绪偏多，科技股讨论热度较高。");
-    expect(result).toContain("AAPL earnings beat");
   });
 
-  it("includes at most five source links", () => {
-    const posts = Array.from({ length: 6 }, (_, i) =>
-      makePost({
-        title: `Post ${i + 1}`,
-        permalink: `/r/stocks/comments/${i + 1}/post_${i + 1}/`,
-      }),
-    );
+  it("does not include source links", () => {
+    const posts = [makePost({ permalink: "/r/stocks/comments/1/post_1/" })];
     const result = buildDigestMessage("今日重点如下", posts);
-    expect(result).toContain("/r/stocks/comments/1/post_1/");
-    expect(result).toContain("/r/stocks/comments/5/post_5/");
-    expect(result).not.toContain("/r/stocks/comments/6/post_6/");
+    expect(result).not.toContain("/r/stocks/comments/1/post_1/");
+    expect(result).not.toContain("热门原帖链接");
   });
 
-  it("truncates long source titles in link section", () => {
-    const posts = [makePost({ title: "A".repeat(70) })];
+  it("lists extracted stock tickers when present", () => {
+    const posts = [makePost({ title: "AAPL rises while TSLA slips", selftext: "MSFT remains stable" })];
     const result = buildDigestMessage("测试摘要", posts);
-    expect(result).toContain(`${"A".repeat(60)}...`);
+    expect(result).toContain("关注代码：AAPL, MSFT, TSLA");
+  });
+
+  it("filters noisy uppercase words from ticker extraction", () => {
+    const posts = [makePost({ title: "CNBC says NVIDIA and CPU demand are hot while AMD rallies", selftext: "GOOGL and NVDA are the actual tickers" })];
+    const result = buildDigestMessage("测试摘要", posts);
+    expect(result).toContain("关注代码：AMD, GOOGL, NVDA");
+    expect(result).not.toContain("CNBC");
+    expect(result).not.toContain("CPU");
+    expect(result).not.toContain("VIDIA");
+  });
+
+  it("formats detailed report link on its own line", () => {
+    const posts = [makePost({ title: "AAPL earnings beat" })];
+    const result = buildDigestMessage("测试摘要", posts, "https://example.com/reddit-stocks-digest-worker/20260424015246.md");
+    expect(result).toContain(`详细版报告:
+https://example.com/reddit-stocks-digest-worker/20260424015246.md`);
   });
 });
 
 describe("buildFallbackMessage", () => {
-  it("formats posts with score and comments", () => {
+  it("formats posts with score and comments without timestamp", () => {
     const posts = [makePost({ title: "AAPL earnings beat", score: 1234, numComments: 567 })];
-    const result = buildFallbackMessage(posts, new Date("2026-04-23T06:00:00Z"));
-    expect(result).toContain("Reddit r/stocks 热门帖子");
+    const result = buildFallbackMessage(posts, "", new Date("2026-04-23T06:00:00Z"));
     expect(result).toContain("AI 分析不可用");
-    expect(result).toContain("2026-04-23 06:00 UTC");
+    expect(result).not.toContain("2026-04-23 06:00 UTC");
     expect(result).toContain("1,234");
     expect(result).toContain("567");
     expect(result).toContain("AAPL earnings beat");
@@ -90,13 +97,26 @@ describe("buildFallbackMessage", () => {
 
   it("handles empty posts array", () => {
     const result = buildFallbackMessage([]);
-    expect(result).toContain("Reddit r/stocks 热门帖子");
     expect(result).toContain("共 0 条热门帖子");
   });
 
-  it("includes permalink as link", () => {
+  it("does not include permalink links", () => {
     const posts = [makePost({ permalink: "/r/stocks/comments/xyz/my_post/" })];
     const result = buildFallbackMessage(posts);
-    expect(result).toContain("https://www.reddit.com/r/stocks/comments/xyz/my_post/");
+    expect(result).not.toContain("https://www.reddit.com/r/stocks/comments/xyz/my_post/");
+    expect(result).not.toContain("🔗");
+  });
+
+  it("lists extracted stock tickers when present", () => {
+    const posts = [makePost({ title: "NVDA and AMD jump", selftext: "$INTC mentioned too" })];
+    const result = buildFallbackMessage(posts);
+    expect(result).toContain("关注代码：INTC, AMD, NVDA");
+  });
+
+  it("formats detailed report link on its own line", () => {
+    const posts = [makePost({ title: "NVDA and AMD jump" })];
+    const result = buildFallbackMessage(posts, "https://example.com/reddit-stocks-digest-worker/20260424015246.md");
+    expect(result).toContain(`详细版报告:
+https://example.com/reddit-stocks-digest-worker/20260424015246.md`);
   });
 });

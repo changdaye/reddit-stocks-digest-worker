@@ -1,14 +1,18 @@
 import type { DigestConfig, RedditPost } from "../types";
 
-const SYSTEM_PROMPT = `你是一位专业的财经分析师，擅长解读美股市场动态。请根据以下 Reddit r/stocks 热门帖子，生成一份简洁的中文财经摘要。
+const SYSTEM_PROMPT = `你是一位专业的财经分析师，擅长解读美股市场动态。请根据以下 Reddit r/stocks 热门帖子，生成一份清晰、简洁、但略有细节的中文摘要。
 
-要求：
-1. 先用 2-3 句话概括当前市场整体情绪和趋势
-2. 按重要性排序，挑选最有价值的帖子进行分析
-3. 每条新闻用简洁的中文总结，标注情绪倾向（🟢看涨 / 🔴看跌 / ⚪中性）
-4. 忽略水帖、重复话题或低质量讨论
-5. 总字数控制在 800 字以内
-6. 不要输出 Markdown 标题语法（不要用 # 号）`;
+输出要求：
+1. 只输出两个部分，且不要重复：
+   - 市场概览：2-3 句话，概括整体情绪和主要主题
+   - 重点摘要：按重要性排序列出 4-6 条
+2. 不要再额外输出“最有价值的帖子分析”和“简洁的中文总结”这种两套重复结构，只保留一套“重点摘要”
+3. 每条重点摘要控制在 2-3 句话，比一句话更详细，但不要太长
+4. 每条重点摘要都标注情绪倾向（🟢看涨 / 🔴看跌 / ⚪中性）
+5. 如果能识别到明确股票代码或公司简称，尽量直接写出来
+6. 忽略水帖、重复话题或低质量讨论
+7. 总字数控制在 900 字以内
+8. 不要输出 Markdown 标题语法（不要用 # 号），也不要使用加粗语法`;
 
 interface WorkersAIResult {
   response?: string;
@@ -30,6 +34,8 @@ export async function analyzeWithLLM(config: DigestConfig, ai: Ai, posts: Reddit
     ],
     max_tokens: 800,
     temperature: 0.3,
+  }, {
+    gateway: { id: "default" },
   })) as WorkersAIResult;
 
   const content = result.response?.trim();

@@ -8,10 +8,13 @@ import {
   shouldSendFailureAlert,
   shouldSendHeartbeat,
 } from "./lib/runtime";
+import { clearQuietDigest, isDigestQuietHours, noteQuietDigest } from "./lib/schedule";
 import { fetchHotPosts } from "./services/reddit";
 import { analyzeWithLLM } from "./services/llm";
 import { pushToFeishu } from "./services/feishu";
-import { buildDigestMessage, buildFailureAlertMessage, buildFallbackMessage, buildHeartbeatMessage } from "./lib/message";
+import { uploadDetailedReportToCos } from "./services/cos";
+import { buildDigestMessage, buildFailureAlertMessage, buildFallbackMessage, buildHeartbeatMessage, buildWakeSummaryMessage } from "./lib/message";
+import { buildDetailedReport } from "./lib/report";
 import { authorizeAdminRequest } from "./lib/admin";
 import type { DigestConfig, Env, RedditPost, RuntimeState } from "./types";
 
@@ -19,22 +22,54 @@ async function runDigest(env: Env): Promise<{ postCount: number; aiAnalysis: boo
   const config = parseConfig(env);
   const state = await getRuntimeState(env.HEARTBEAT_KV);
   const now = new Date();
+  const quietHours = isDigestQuietHours(now);
 
   try {
     const digest = await buildDigest(config, env.AI);
+    const detailedReport = buildDetailedReport(
+      digest.analysis ?? digest.fallbackMessage,
+      digest.posts,
+      digest.aiAnalysis,
+      now,
+    );
+    const uploadedReport = await uploadDetailedReportToCos(config, detailedReport, now);
+    const baseMessage = digest.aiAnalysis
+      ? buildDigestMessage(digest.analysis ?? "", digest.posts, uploadedReport.url)
+      : buildFallbackMessage(digest.posts, uploadedReport.url);
+    const message = !quietHours && (state.quietDigestCount ?? 0) > 0
+      ? buildWakeSummaryMessage(baseMessage, state.quietDigestCount ?? 0)
+      : baseMessage;
+
     const summaryId = crypto.randomUUID();
     await insertDigestSummary(env.SUMMARIES_DB, {
       id: summaryId,
       postCount: digest.posts.length,
       aiAnalysis: digest.aiAnalysis,
-      messageText: digest.message,
+      messageText: message,
       analysisText: digest.analysis,
       posts: digest.posts,
       now,
     });
 
+    let nextState = recordSuccess(state, now);
+
+    if (quietHours) {
+      nextState = noteQuietDigest(nextState, now);
+      await markDigestSummaryPushed(env.SUMMARIES_DB, summaryId, true);
+      if (shouldSendHeartbeat(nextState, config.heartbeatIntervalHours, now)) {
+        try {
+          await pushToFeishu(config, buildHeartbeatMessage(nextState, config.heartbeatIntervalHours));
+          nextState = { ...nextState, lastHeartbeatAt: now.toISOString() };
+        } catch {
+          // Heartbeat should not fail the main digest flow.
+        }
+      }
+      await setRuntimeState(env.HEARTBEAT_KV, nextState);
+      return { postCount: digest.posts.length, aiAnalysis: digest.aiAnalysis };
+    }
+
     try {
-      await pushToFeishu(config, digest.message);
+      await pushToFeishu(config, message);
       await markDigestSummaryPushed(env.SUMMARIES_DB, summaryId, true);
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
@@ -42,7 +77,9 @@ async function runDigest(env: Env): Promise<{ postCount: number; aiAnalysis: boo
       throw error;
     }
 
-    let nextState = recordSuccess(state, now);
+    if ((nextState.quietDigestCount ?? 0) > 0) {
+      nextState = clearQuietDigest(nextState);
+    }
     if (shouldSendHeartbeat(nextState, config.heartbeatIntervalHours, now)) {
       try {
         await pushToFeishu(config, buildHeartbeatMessage(nextState, config.heartbeatIntervalHours));
@@ -75,9 +112,9 @@ function jsonResponse(data: Record<string, unknown>, status = 200): Response {
 
 async function buildDigest(config: DigestConfig, ai: Ai): Promise<{
   posts: RedditPost[];
-  message: string;
   analysis?: string;
   aiAnalysis: boolean;
+  fallbackMessage: string;
 }> {
   const posts = await fetchHotPosts(config.postLimit, config.requestTimeoutMs, config.redditCookie);
 
@@ -85,16 +122,16 @@ async function buildDigest(config: DigestConfig, ai: Ai): Promise<{
     const analysis = await analyzeWithLLM(config, ai, posts);
     return {
       posts,
-      message: buildDigestMessage(analysis, posts),
       analysis,
       aiAnalysis: true,
+      fallbackMessage: buildFallbackMessage(posts),
     };
   } catch (error) {
     console.error("LLM analysis failed", error instanceof Error ? error.message : String(error));
     return {
       posts,
-      message: buildFallbackMessage(posts),
       aiAnalysis: false,
+      fallbackMessage: buildFallbackMessage(posts),
     };
   }
 }

@@ -8,6 +8,11 @@ const config: DigestConfig = {
   postLimit: 20,
   requestTimeoutMs: 15000,
   manualTriggerToken: "token",
+  cosSecretId: "secret-id",
+  cosSecretKey: "secret-key",
+  cosBucket: "bucket",
+  cosRegion: "na-ashburn",
+  cosBaseUrl: "https://bucket.cos.na-ashburn.myqcloud.com",
   llmModel: "@cf/meta/llama-3.1-8b-instruct",
   redditCookie: "",
   heartbeatIntervalHours: 24,
@@ -51,6 +56,7 @@ describe("analyzeWithLLM", () => {
         { role: "user" },
       ],
     });
+    expect(run.mock.calls[0]?.[2]).toEqual({ gateway: { id: "default" } });
   });
 
   it("throws when Workers AI returns an empty response", async () => {

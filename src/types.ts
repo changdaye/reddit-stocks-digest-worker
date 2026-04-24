@@ -5,6 +5,11 @@ export interface Env {
   FEISHU_WEBHOOK: string;
   FEISHU_SECRET?: string;
   MANUAL_TRIGGER_TOKEN?: string;
+  TENCENT_COS_SECRET_ID: string;
+  TENCENT_COS_SECRET_KEY: string;
+  TENCENT_COS_BUCKET: string;
+  TENCENT_COS_REGION: string;
+  TENCENT_COS_BASE_URL?: string;
   POST_LIMIT?: string;
   REQUEST_TIMEOUT_MS?: string;
   LLM_MODEL?: string;
@@ -20,6 +25,11 @@ export interface DigestConfig {
   postLimit: number;
   requestTimeoutMs: number;
   manualTriggerToken: string;
+  cosSecretId: string;
+  cosSecretKey: string;
+  cosBucket: string;
+  cosRegion: string;
+  cosBaseUrl: string;
   llmModel: string;
   redditCookie: string;
   heartbeatIntervalHours: number;
@@ -47,6 +57,9 @@ export interface RuntimeState {
   lastHeartbeatAt?: string;
   lastAlertAt?: string;
   lastError?: string;
+  quietDigestCount?: number;
+  quietDigestStartedAt?: string;
+  quietDigestLastAt?: string;
   consecutiveFailures: number;
 }
 
