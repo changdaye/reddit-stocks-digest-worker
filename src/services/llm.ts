@@ -22,21 +22,24 @@ export async function analyzeWithLLM(config: DigestConfig, ai: Ai, posts: Reddit
   const postList = posts
     .map((p, i) => {
       const flair = p.linkFlairText ? ` [${p.linkFlairText}]` : "";
-      const selftext = p.selftext ? `\n   内容: ${p.selftext.slice(0, 300)}` : "";
+      const selftext = p.selftext ? `\n内容: ${p.selftext.slice(0, 300)}` : "";
       return `${i + 1}. [⬆️${p.score} | 💬${p.numComments}]${flair} ${p.title}${selftext}`;
     })
-    .join("\n");
+    .join("\n\n");
 
-  const result = (await ai.run(config.llmModel, {
-    messages: [
-      { role: "system", content: SYSTEM_PROMPT },
-      { role: "user", content: `以下是 Reddit r/stocks 当前的 ${posts.length} 条热门帖子：\n\n${postList}` },
-    ],
-    max_tokens: 800,
-    temperature: 0.3,
-  }, {
-    gateway: { id: "default" },
-  })) as WorkersAIResult;
+  const prompt = `${SYSTEM_PROMPT}\n\n以下是 Reddit r/stocks 当前的 ${posts.length} 条热门帖子：\n\n${postList}`;
+
+  const result = (await ai.run(
+    config.llmModel,
+    {
+      prompt,
+      max_tokens: 800,
+      temperature: 0.3,
+    },
+    {
+      gateway: { id: "default" },
+    },
+  )) as WorkersAIResult;
 
   const content = result.response?.trim();
   if (!content) throw new Error("Workers AI returned empty response");

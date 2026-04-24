@@ -41,7 +41,7 @@ afterEach(() => {
 });
 
 describe("analyzeWithLLM", () => {
-  it("uses Workers AI chat inference and returns the response text", async () => {
+  it("uses Workers AI prompt inference and returns the response text", async () => {
     const run = vi.fn().mockResolvedValue({ response: "市场情绪偏多，科技股热度较高。" });
     const ai = { run } as unknown as Ai;
 
@@ -51,10 +51,7 @@ describe("analyzeWithLLM", () => {
     expect(run.mock.calls[0]?.[1]).toMatchObject({
       max_tokens: 800,
       temperature: 0.3,
-      messages: [
-        { role: "system" },
-        { role: "user" },
-      ],
+      prompt: expect.stringContaining("以下是 Reddit r/stocks 当前的 1 条热门帖子："),
     });
     expect(run.mock.calls[0]?.[2]).toEqual({ gateway: { id: "default" } });
   });
