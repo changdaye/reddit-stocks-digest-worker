@@ -3,6 +3,7 @@
   "name": "reddit-stocks-digest-worker",
   "main": "src/index.ts",
   "compatibility_date": "2026-04-23",
+  "account_id": "d66336592b3f62650da1e5fa60e4a28c",
   "workers_dev": true,
   "preview_urls": false,
   "observability": {
@@ -11,8 +12,8 @@
   "kv_namespaces": [
     {
       "binding": "HEARTBEAT_KV",
-      "id": "c272e0e9edb44884a6309061e02145d9",
-      "preview_id": "0b109be6c49b4b0a9d5d5841b4937082"
+      "id": "9770edd74736463dba9f27bd6a7a97de",
+      "preview_id": "9770edd74736463dba9f27bd6a7a97de"
     }
   ],
   "ai": {
@@ -22,7 +23,7 @@
     {
       "binding": "SUMMARIES_DB",
       "database_name": "reddit-stocks-digest",
-      "database_id": "d34eda94-16d6-4390-9980-89978244467d",
+      "database_id": "ae6b06b8-e62f-478b-9fb1-c0959e8692c2",
       "migrations_dir": "migrations"
     }
   ],
