@@ -9,7 +9,7 @@ Cloudflare Worker：定时抓取 Reddit `r/stocks` 热门帖子，调用 Cloudfl
 - LLM 不可用时自动回退到原始热门帖子列表
 - 使用 KV 保存心跳、最近成功/失败时间、连续失败次数
 - 使用 D1 仅保存最终生成的摘要结果，不保存原始帖子历史
-- 额外生成超详细版 Markdown 报告并上传到腾讯云 COS
+- 额外生成超详细版 HTML 报告并上传到腾讯云 COS
 - 提供 `/health` 健康检查
 - 提供 `/admin/trigger` 手动触发接口（Bearer Token）
 - GitHub Actions CI + Cloudflare 自动部署

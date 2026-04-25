@@ -57,9 +57,9 @@ describe("buildDigestMessage", () => {
 
   it("formats detailed report link on its own line", () => {
     const posts = [makePost({ title: "AAPL earnings beat" })];
-    const result = buildDigestMessage("测试摘要", posts, "https://example.com/reddit-stocks-digest-worker/20260424015246.md");
+    const result = buildDigestMessage("测试摘要", posts, "https://example.com/reddit-stocks-digest-worker/20260424015246.html");
     expect(result).toContain(`详细版报告:
-https://example.com/reddit-stocks-digest-worker/20260424015246.md`);
+https://example.com/reddit-stocks-digest-worker/20260424015246.html`);
   });
 });
 
@@ -127,8 +127,8 @@ describe("buildFallbackMessage", () => {
 
   it("formats detailed report link on its own line", () => {
     const posts = [makePost({ title: "NVDA and AMD jump" })];
-    const result = buildFallbackMessage(posts, "https://example.com/reddit-stocks-digest-worker/20260424015246.md");
+    const result = buildFallbackMessage(posts, "https://example.com/reddit-stocks-digest-worker/20260424015246.html");
     expect(result).toContain(`详细版报告:
-https://example.com/reddit-stocks-digest-worker/20260424015246.md`);
+https://example.com/reddit-stocks-digest-worker/20260424015246.html`);
   });
 });

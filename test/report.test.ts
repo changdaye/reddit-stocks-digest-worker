@@ -21,11 +21,12 @@ const posts: RedditPost[] = [
 describe("buildDetailedReport", () => {
   it("includes summary, ticker list and post metadata", () => {
     const report = buildDetailedReport("市场情绪偏多。", posts, true, new Date("2026-04-24T01:02:03Z"));
-    expect(report).toContain("# Reddit Stocks Digest 详细报告");
-    expect(report).toContain("关注代码: AAPL");
-    expect(report).toContain("## 摘要");
+    expect(report).toContain("<!doctype html>");
+    expect(report).toContain("<h1>Reddit Stocks Digest 详细报告</h1>");
+    expect(report).toContain("关注代码：</strong>AAPL");
+    expect(report).toContain("<h2>摘要</h2>");
     expect(report).toContain("市场情绪偏多。");
-    expect(report).toContain("### 1. AAPL earnings beat expectations [Company News]");
+    expect(report).toContain("1. AAPL earnings beat expectations [Company News]");
     expect(report).toContain("https://www.reddit.com/r/stocks/comments/abc/aapl/");
   });
 });
@@ -33,6 +34,6 @@ describe("buildDetailedReport", () => {
 describe("buildDetailedReportObjectKey", () => {
   it("uses project prefix and UTC timestamp filename", () => {
     const key = buildDetailedReportObjectKey(new Date("2026-04-24T01:02:03Z"));
-    expect(key).toBe("reddit-stocks-digest-worker/20260424010203.md");
+    expect(key).toBe("reddit-stocks-digest-worker/20260424010203.html");
   });
 });
