@@ -7,18 +7,22 @@ const TICKER_STOPWORDS = new Set([
   "CNBC", "CPU", "RAM", "VIDIA", "TESLA", "GOOGLE", "SPACE", "SPACEX", "TRUMP", "INTEL",
 ]);
 
-export function buildDigestMessage(analysis: string, posts: RedditPost[], detailedReportUrl = "", now = new Date()): string {
+export function buildDigestMessage(analysis: string, posts: RedditPost[], detailedReportUrl = "", now = new Date(), modelLabel = ""): string {
+  const modelLine = modelLabel ? `🤖 模型：${modelLabel}` : "";
   const tickerLine = buildTickerLine(posts);
   const reportLine = detailedReportUrl ? `详细版报告:\n${detailedReportUrl}` : "";
-  const parts = [tickerLine, "─".repeat(20), analysis, reportLine].filter(Boolean);
+  const parts = [modelLine, tickerLine, "─".repeat(20), analysis, reportLine].filter(Boolean);
   const body = parts.join("\n\n");
   return body.slice(0, MAX_MESSAGE_LENGTH);
 }
 
-export function buildFallbackMessage(posts: RedditPost[], detailedReportUrl = "", now = new Date()): string {
+export function buildFallbackMessage(posts: RedditPost[], detailedReportUrl = "", now = new Date(), modelLabel = ""): string {
   const header = "⚠️ AI 分析不可用，以下为原始热门帖子列表\n";
+  const modelLine = modelLabel ? `🤖 模型：${modelLabel}` : "";
   const tickerLine = buildTickerLine(posts);
-  const lines: string[] = tickerLine ? [header, tickerLine] : [header];
+  const lines: string[] = [header];
+  if (modelLine) lines.push(modelLine);
+  if (tickerLine) lines.push(tickerLine);
 
   for (let i = 0; i < posts.length; i++) {
     const post = posts[i];

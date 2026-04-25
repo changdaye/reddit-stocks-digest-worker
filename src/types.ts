@@ -12,6 +12,8 @@ export interface Env {
   TENCENT_COS_BASE_URL?: string;
   POST_LIMIT?: string;
   REQUEST_TIMEOUT_MS?: string;
+  LLM_BASE_URL?: string;
+  LLM_API_KEY?: string;
   LLM_MODEL?: string;
   REDDIT_COOKIE?: string;
   HEARTBEAT_INTERVAL_HOURS?: string;
@@ -30,11 +32,18 @@ export interface DigestConfig {
   cosBucket: string;
   cosRegion: string;
   cosBaseUrl: string;
+  llmBaseUrl: string;
+  llmApiKey: string;
   llmModel: string;
   redditCookie: string;
   heartbeatIntervalHours: number;
   failureAlertThreshold: number;
   failureAlertCooldownMinutes: number;
+}
+
+export interface LLMAnalysisResult {
+  analysis: string;
+  modelLabel: string;
 }
 
 export interface RedditPost {

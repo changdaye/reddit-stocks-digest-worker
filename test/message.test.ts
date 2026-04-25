@@ -20,6 +20,12 @@ function makePost(overrides: Partial<RedditPost> = {}): RedditPost {
 }
 
 describe("buildDigestMessage", () => {
+  it("includes a readable model label when provided", () => {
+    const posts = [makePost({ title: "AAPL earnings beat" })];
+    const result = buildDigestMessage("测试摘要", posts, "", new Date("2026-04-23T06:00:00Z"), "GPT 5.4");
+    expect(result).toContain("🤖 模型：GPT 5.4");
+  });
+
   it("formats AI digest header and analysis without timestamp", () => {
     const posts = [makePost({ title: "AAPL earnings beat" })];
     const result = buildDigestMessage("市场情绪偏多，科技股讨论热度较高。", posts, "", new Date("2026-04-23T06:00:00Z"));
@@ -58,6 +64,12 @@ https://example.com/reddit-stocks-digest-worker/20260424015246.md`);
 });
 
 describe("buildFallbackMessage", () => {
+  it("includes a readable model label when provided", () => {
+    const posts = [makePost({ title: "AAPL earnings beat", score: 1234, numComments: 567 })];
+    const result = buildFallbackMessage(posts, "", new Date("2026-04-23T06:00:00Z"), "Llama 3.1 8B Instruct");
+    expect(result).toContain("🤖 模型：Llama 3.1 8B Instruct");
+  });
+
   it("formats posts with score and comments without timestamp", () => {
     const posts = [makePost({ title: "AAPL earnings beat", score: 1234, numComments: 567 })];
     const result = buildFallbackMessage(posts, "", new Date("2026-04-23T06:00:00Z"));

@@ -28,9 +28,11 @@ npm run dev
 
 ### Wrangler vars
 
+- `LLM_BASE_URL`：可选；设置后优先调用 OpenAI-compatible `chat/completions` 端点
+- `LLM_API_KEY`：可选；与 `LLM_BASE_URL` 配套使用
 - `POST_LIMIT`：抓取条数，默认 `20`
 - `REQUEST_TIMEOUT_MS`：Reddit 请求超时，默认 `15000`
-- `LLM_MODEL`：默认 `@cf/meta/llama-3.1-8b-instruct`
+- `LLM_MODEL`：默认 `@cf/meta/llama-3.1-8b-instruct`；当配置代理时可设为例如 `gpt-5.4`
 - `HEARTBEAT_INTERVAL_HOURS`：心跳间隔，默认 `24`
 - `FAILURE_ALERT_THRESHOLD`：连续失败达到多少次后告警，默认 `1`
 - `FAILURE_ALERT_COOLDOWN_MINUTES`：失败告警冷却时间，默认 `180`
@@ -49,7 +51,7 @@ npm run dev
 
 ### Cloudflare 资源绑定
 
-- `AI`：Workers AI binding，用于生成摘要
+- `AI`：Workers AI binding，用于在代理未配置或代理失败时生成摘要
 - `HEARTBEAT_KV`：KV namespace，用于保存心跳状态
 - `SUMMARIES_DB`：D1 数据库，用于保存最终摘要
 

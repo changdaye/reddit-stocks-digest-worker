@@ -34,8 +34,8 @@ async function runDigest(env: Env): Promise<{ postCount: number; aiAnalysis: boo
     );
     const uploadedReport = await uploadDetailedReportToCos(config, detailedReport, now);
     const baseMessage = digest.aiAnalysis
-      ? buildDigestMessage(digest.analysis ?? "", digest.posts, uploadedReport.url)
-      : buildFallbackMessage(digest.posts, uploadedReport.url);
+      ? buildDigestMessage(digest.analysis ?? "", digest.posts, uploadedReport.url, now, digest.modelLabel ?? "")
+      : buildFallbackMessage(digest.posts, uploadedReport.url, now, digest.modelLabel ?? "");
     const message = !quietHours && (state.quietDigestCount ?? 0) > 0
       ? buildWakeSummaryMessage(baseMessage, state.quietDigestCount ?? 0)
       : baseMessage;
@@ -113,16 +113,18 @@ function jsonResponse(data: Record<string, unknown>, status = 200): Response {
 async function buildDigest(config: DigestConfig, ai: Ai): Promise<{
   posts: RedditPost[];
   analysis?: string;
+  modelLabel?: string;
   aiAnalysis: boolean;
   fallbackMessage: string;
 }> {
   const posts = await fetchHotPosts(config.postLimit, config.requestTimeoutMs, config.redditCookie);
 
   try {
-    const analysis = await analyzeWithLLM(config, ai, posts);
+    const llmResult = await analyzeWithLLM(config, ai, posts);
     return {
       posts,
-      analysis,
+      analysis: llmResult.analysis,
+      modelLabel: llmResult.modelLabel,
       aiAnalysis: true,
       fallbackMessage: buildFallbackMessage(posts),
     };
