@@ -13,6 +13,7 @@ const config: DigestConfig = {
   cosBucket: "bucket",
   cosRegion: "na-ashburn",
   cosBaseUrl: "https://bucket.cos.na-ashburn.myqcloud.com",
+  workerPublicBaseUrl: "https://example.workers.dev",
   llmBaseUrl: "",
   llmApiKey: "",
   llmModel: "@cf/meta/llama-3.1-8b-instruct",
@@ -43,6 +44,34 @@ afterEach(() => {
 });
 
 describe("analyzeWithLLM", () => {
+  it("uses Workers AI when the selected model is a Cloudflare model even if proxy settings exist", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    const run = vi.fn().mockResolvedValue({ response: "Workers AI 直接执行。" });
+    const ai = { run } as unknown as Ai;
+
+    await expect(
+      analyzeWithLLM(
+        {
+          ...config,
+          llmBaseUrl: "http://34.146.152.231:8317/api/provider/openai/v1",
+          llmApiKey: "proxy-key",
+          llmModel: "@cf/meta/llama-3.1-8b-instruct",
+        },
+        ai,
+        posts,
+      ),
+    ).resolves.toEqual({
+      analysis: "Workers AI 直接执行。",
+      modelLabel: "Llama 3.1 8B Instruct",
+    });
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(run).toHaveBeenCalledTimes(1);
+    expect(run.mock.calls[0]?.[0]).toBe("@cf/meta/llama-3.1-8b-instruct");
+  });
+
   it("prefers the OpenAI-compatible proxy when configured", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(
@@ -91,6 +120,7 @@ describe("analyzeWithLLM", () => {
     expect(JSON.parse(fetchMock.mock.calls[0]?.[1]?.body as string)).toMatchObject({
       model: "gpt-5.4",
       reasoning_effort: "xhigh",
+      max_completion_tokens: 900,
       temperature: 0.3,
       max_tokens: 800,
       messages: [

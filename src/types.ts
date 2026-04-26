@@ -10,6 +10,7 @@ export interface Env {
   TENCENT_COS_BUCKET: string;
   TENCENT_COS_REGION: string;
   TENCENT_COS_BASE_URL?: string;
+  WORKER_PUBLIC_BASE_URL?: string;
   POST_LIMIT?: string;
   REQUEST_TIMEOUT_MS?: string;
   LLM_BASE_URL?: string;
@@ -32,6 +33,7 @@ export interface DigestConfig {
   cosBucket: string;
   cosRegion: string;
   cosBaseUrl: string;
+  workerPublicBaseUrl: string;
   llmBaseUrl: string;
   llmApiKey: string;
   llmModel: string;

@@ -32,7 +32,8 @@ npm run dev
 - `LLM_API_KEY`：可选；与 `LLM_BASE_URL` 配套使用
 - `POST_LIMIT`：抓取条数，默认 `20`
 - `REQUEST_TIMEOUT_MS`：Reddit 请求超时，默认 `15000`
-- `LLM_MODEL`：默认 `@cf/meta/llama-3.1-8b-instruct`；当配置代理时可设为例如 `gpt-5.4`
+- `LLM_MODEL`：当前推荐 `gpt-5.4`；调用方式与仓库内已验证的 GPT Worker 保持一致，代理失败时才会回退到 Workers AI 默认模型
+- `WORKER_PUBLIC_BASE_URL`：建议显式配置为当前 Worker 的公开域名，用于详细版报告链接
 - `HEARTBEAT_INTERVAL_HOURS`：心跳间隔，默认 `24`
 - `FAILURE_ALERT_THRESHOLD`：连续失败达到多少次后告警，默认 `1`
 - `FAILURE_ALERT_COOLDOWN_MINUTES`：失败告警冷却时间，默认 `180`

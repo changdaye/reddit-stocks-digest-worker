@@ -15,10 +15,11 @@ import { pushToFeishu } from "./services/feishu";
 import { uploadDetailedReportToCos } from "./services/cos";
 import { buildDigestMessage, buildFailureAlertMessage, buildFallbackMessage, buildHeartbeatMessage, buildWakeSummaryMessage } from "./lib/message";
 import { buildDetailedReport } from "./lib/report";
+import { buildDetailedReportPublicUrl, maybeHandleDetailedReportRequest, saveDetailedReportCopy } from "./lib/report-storage";
 import { authorizeAdminRequest } from "./lib/admin";
 import type { DigestConfig, Env, RedditPost, RuntimeState } from "./types";
 
-async function runDigest(env: Env): Promise<{ postCount: number; aiAnalysis: boolean }> {
+async function runDigest(env: Env): Promise<{ postCount: number; aiAnalysis: boolean; detailedReportUrl?: string }> {
   const config = parseConfig(env);
   const state = await getRuntimeState(env.HEARTBEAT_KV);
   const now = new Date();
@@ -33,9 +34,11 @@ async function runDigest(env: Env): Promise<{ postCount: number; aiAnalysis: boo
       now,
     );
     const uploadedReport = await uploadDetailedReportToCos(config, detailedReport, now);
+    await saveDetailedReportCopy(env.HEARTBEAT_KV, uploadedReport.key, detailedReport);
+    const publicReportUrl = buildDetailedReportPublicUrl(config.workerPublicBaseUrl, uploadedReport.key);
     const baseMessage = digest.aiAnalysis
-      ? buildDigestMessage(digest.analysis ?? "", digest.posts, uploadedReport.url, now, digest.modelLabel ?? "")
-      : buildFallbackMessage(digest.posts, uploadedReport.url, now, digest.modelLabel ?? "");
+      ? buildDigestMessage(digest.analysis ?? "", digest.posts, publicReportUrl, now, digest.modelLabel ?? "")
+      : buildFallbackMessage(digest.posts, publicReportUrl, now, digest.modelLabel ?? "");
     const message = !quietHours && (state.quietDigestCount ?? 0) > 0
       ? buildWakeSummaryMessage(baseMessage, state.quietDigestCount ?? 0)
       : baseMessage;
@@ -65,7 +68,7 @@ async function runDigest(env: Env): Promise<{ postCount: number; aiAnalysis: boo
         }
       }
       await setRuntimeState(env.HEARTBEAT_KV, nextState);
-      return { postCount: digest.posts.length, aiAnalysis: digest.aiAnalysis };
+      return { postCount: digest.posts.length, aiAnalysis: digest.aiAnalysis, detailedReportUrl: publicReportUrl };
     }
 
     try {
@@ -89,7 +92,7 @@ async function runDigest(env: Env): Promise<{ postCount: number; aiAnalysis: boo
       }
     }
     await setRuntimeState(env.HEARTBEAT_KV, nextState);
-    return { postCount: digest.posts.length, aiAnalysis: digest.aiAnalysis };
+    return { postCount: digest.posts.length, aiAnalysis: digest.aiAnalysis, detailedReportUrl: publicReportUrl };
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
     let nextState = recordFailure(state, msg, now);
@@ -108,6 +111,11 @@ async function runDigest(env: Env): Promise<{ postCount: number; aiAnalysis: boo
 
 function jsonResponse(data: Record<string, unknown>, status = 200): Response {
   return Response.json(data, { status });
+}
+
+export function queueManualTrigger(ctx: ExecutionContext, task: () => Promise<unknown>): Response {
+  ctx.waitUntil(task());
+  return jsonResponse({ ok: true, queued: true }, 202);
 }
 
 async function buildDigest(config: DigestConfig, ai: Ai): Promise<{
@@ -144,8 +152,13 @@ async function buildHealthResponse(env: Env): Promise<Record<string, unknown>> {
 }
 
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
+
+    if (request.method === "GET") {
+      const reportResponse = await maybeHandleDetailedReportRequest(request, env.HEARTBEAT_KV);
+      if (reportResponse) return reportResponse;
+    }
 
     if (request.method === "GET" && (url.pathname === "/" || url.pathname === "/health")) {
       return jsonResponse(await buildHealthResponse(env));
@@ -156,6 +169,11 @@ export default {
       const auth = authorizeAdminRequest(request, config.manualTriggerToken);
       if (!auth.ok) {
         return jsonResponse({ ok: false, error: auth.error }, auth.status);
+      }
+      if (url.searchParams.get("async") === "1") {
+        return queueManualTrigger(ctx, async () => {
+          await runDigest(env);
+        });
       }
       try {
         const result = await runDigest(env);

@@ -34,6 +34,7 @@
     "POST_LIMIT": "20",
     "REQUEST_TIMEOUT_MS": "15000",
     "LLM_MODEL": "gpt-5.4",
+    "WORKER_PUBLIC_BASE_URL": "https://reddit-stocks-digest-worker.5frhvfq5s2.workers.dev",
     "HEARTBEAT_INTERVAL_HOURS": "24",
     "FAILURE_ALERT_THRESHOLD": "1",
     "FAILURE_ALERT_COOLDOWN_MINUTES": "180"

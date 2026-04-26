@@ -16,6 +16,7 @@ const SYSTEM_PROMPT = `你是一位专业的财经分析师，擅长解读美股
 
 const DEFAULT_WORKERS_AI_MODEL = "@cf/meta/llama-3.1-8b-instruct";
 const OPENAI_COMPAT_REASONING_EFFORT = "xhigh";
+const OPENAI_COMPAT_MAX_COMPLETION_TOKENS = 900;
 
 interface WorkersAIResult {
   response?: string;
@@ -40,7 +41,7 @@ export async function analyzeWithLLM(config: DigestConfig, ai: Ai, posts: Reddit
 
   const userPrompt = `以下是 Reddit r/stocks 当前的 ${posts.length} 条热门帖子：\n\n${postList}`;
 
-  if (config.llmBaseUrl && config.llmApiKey) {
+  if (shouldUseOpenAICompatible(config)) {
     try {
       return await analyzeWithOpenAICompatible(config, userPrompt);
     } catch (error) {
@@ -49,6 +50,14 @@ export async function analyzeWithLLM(config: DigestConfig, ai: Ai, posts: Reddit
   }
 
   return analyzeWithWorkersAI(config, ai, `${SYSTEM_PROMPT}\n\n${userPrompt}`);
+}
+
+function shouldUseOpenAICompatible(config: DigestConfig): boolean {
+  return Boolean(
+    config.llmBaseUrl
+    && config.llmApiKey
+    && !config.llmModel.trim().startsWith("@cf/"),
+  );
 }
 
 async function analyzeWithOpenAICompatible(config: DigestConfig, userPrompt: string): Promise<LLMAnalysisResult> {
@@ -61,6 +70,7 @@ async function analyzeWithOpenAICompatible(config: DigestConfig, userPrompt: str
     body: JSON.stringify({
       model: config.llmModel,
       reasoning_effort: OPENAI_COMPAT_REASONING_EFFORT,
+      max_completion_tokens: OPENAI_COMPAT_MAX_COMPLETION_TOKENS,
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
         { role: "user", content: userPrompt },
