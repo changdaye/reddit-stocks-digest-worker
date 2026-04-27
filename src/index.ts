@@ -11,7 +11,7 @@ import {
 import { fetchHotPosts } from "./services/reddit";
 import { analyzeWithLLM } from "./services/llm";
 import { pushToFeishu } from "./services/feishu";
-import { uploadDetailedReportToCos } from "./services/cos";
+import { uploadDetailedReportToCos, uploadFeishuMessageToCos } from "./services/cos";
 import { buildDigestMessage, buildFailureAlertMessage, buildFallbackMessage, buildHeartbeatMessage } from "./lib/message";
 import { buildDetailedReport } from "./lib/report";
 import { buildDetailedReportPublicUrl, maybeHandleDetailedReportRequest, saveDetailedReportCopy } from "./lib/report-storage";
@@ -53,6 +53,7 @@ async function runDigest(env: Env): Promise<{ postCount: number; aiAnalysis: boo
     let nextState = recordSuccess(state, now);
 
     try {
+      await uploadFeishuMessageToCos(config, message, now);
       await pushToFeishu(config, message);
       await markDigestSummaryPushed(env.SUMMARIES_DB, summaryId, true);
     } catch (error) {
@@ -141,7 +142,6 @@ export default {
     if (request.method === "GET" && (url.pathname === "/" || url.pathname === "/health")) {
       return jsonResponse(await buildHealthResponse(env));
     }
-
     if (request.method === "POST" && url.pathname === "/admin/trigger") {
       const config = parseConfig(env);
       const auth = authorizeAdminRequest(request, config.manualTriggerToken);

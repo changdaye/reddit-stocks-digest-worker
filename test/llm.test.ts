@@ -21,10 +21,6 @@ const config: DigestConfig = {
   heartbeatIntervalHours: 24,
   failureAlertThreshold: 1,
   failureAlertCooldownMinutes: 180,
-  finalSummaryHourLocal: 0,
-  finalSummaryMinuteLocal: 30,
-  finalSummaryLookbackHours: 24,
-  marketTimezone: "Asia/Shanghai",
 };
 
 const posts: RedditPost[] = [
