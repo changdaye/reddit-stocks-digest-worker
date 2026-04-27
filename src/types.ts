@@ -20,6 +20,10 @@ export interface Env {
   HEARTBEAT_INTERVAL_HOURS?: string;
   FAILURE_ALERT_THRESHOLD?: string;
   FAILURE_ALERT_COOLDOWN_MINUTES?: string;
+  FINAL_SUMMARY_HOUR_LOCAL?: string;
+  FINAL_SUMMARY_MINUTE_LOCAL?: string;
+  FINAL_SUMMARY_LOOKBACK_HOURS?: string;
+  MARKET_TIMEZONE?: string;
 }
 
 export interface DigestConfig {
@@ -41,6 +45,10 @@ export interface DigestConfig {
   heartbeatIntervalHours: number;
   failureAlertThreshold: number;
   failureAlertCooldownMinutes: number;
+  finalSummaryHourLocal: number;
+  finalSummaryMinuteLocal: number;
+  finalSummaryLookbackHours: number;
+  marketTimezone: string;
 }
 
 export interface LLMAnalysisResult {
