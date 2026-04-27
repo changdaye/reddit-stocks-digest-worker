@@ -8,12 +8,11 @@ import {
   shouldSendFailureAlert,
   shouldSendHeartbeat,
 } from "./lib/runtime";
-import { clearQuietDigest, isDigestQuietHours, noteQuietDigest } from "./lib/schedule";
 import { fetchHotPosts } from "./services/reddit";
 import { analyzeWithLLM } from "./services/llm";
 import { pushToFeishu } from "./services/feishu";
 import { uploadDetailedReportToCos } from "./services/cos";
-import { buildDigestMessage, buildFailureAlertMessage, buildFallbackMessage, buildHeartbeatMessage, buildWakeSummaryMessage } from "./lib/message";
+import { buildDigestMessage, buildFailureAlertMessage, buildFallbackMessage, buildHeartbeatMessage } from "./lib/message";
 import { buildDetailedReport } from "./lib/report";
 import { buildDetailedReportPublicUrl, maybeHandleDetailedReportRequest, saveDetailedReportCopy } from "./lib/report-storage";
 import { authorizeAdminRequest } from "./lib/admin";
@@ -23,7 +22,6 @@ async function runDigest(env: Env): Promise<{ postCount: number; aiAnalysis: boo
   const config = parseConfig(env);
   const state = await getRuntimeState(env.HEARTBEAT_KV);
   const now = new Date();
-  const quietHours = isDigestQuietHours(now);
 
   try {
     const digest = await buildDigest(config, env.AI);
@@ -39,9 +37,7 @@ async function runDigest(env: Env): Promise<{ postCount: number; aiAnalysis: boo
     const baseMessage = digest.aiAnalysis
       ? buildDigestMessage(digest.analysis ?? "", digest.posts, publicReportUrl, now, digest.modelLabel ?? "")
       : buildFallbackMessage(digest.posts, publicReportUrl, now, digest.modelLabel ?? "");
-    const message = !quietHours && (state.quietDigestCount ?? 0) > 0
-      ? buildWakeSummaryMessage(baseMessage, state.quietDigestCount ?? 0)
-      : baseMessage;
+    const message = baseMessage;
 
     const summaryId = crypto.randomUUID();
     await insertDigestSummary(env.SUMMARIES_DB, {
@@ -56,21 +52,6 @@ async function runDigest(env: Env): Promise<{ postCount: number; aiAnalysis: boo
 
     let nextState = recordSuccess(state, now);
 
-    if (quietHours) {
-      nextState = noteQuietDigest(nextState, now);
-      await markDigestSummaryPushed(env.SUMMARIES_DB, summaryId, true);
-      if (shouldSendHeartbeat(nextState, config.heartbeatIntervalHours, now)) {
-        try {
-          await pushToFeishu(config, buildHeartbeatMessage(nextState, config.heartbeatIntervalHours));
-          nextState = { ...nextState, lastHeartbeatAt: now.toISOString() };
-        } catch {
-          // Heartbeat should not fail the main digest flow.
-        }
-      }
-      await setRuntimeState(env.HEARTBEAT_KV, nextState);
-      return { postCount: digest.posts.length, aiAnalysis: digest.aiAnalysis, detailedReportUrl: publicReportUrl };
-    }
-
     try {
       await pushToFeishu(config, message);
       await markDigestSummaryPushed(env.SUMMARIES_DB, summaryId, true);
@@ -80,9 +61,6 @@ async function runDigest(env: Env): Promise<{ postCount: number; aiAnalysis: boo
       throw error;
     }
 
-    if ((nextState.quietDigestCount ?? 0) > 0) {
-      nextState = clearQuietDigest(nextState);
-    }
     if (shouldSendHeartbeat(nextState, config.heartbeatIntervalHours, now)) {
       try {
         await pushToFeishu(config, buildHeartbeatMessage(nextState, config.heartbeatIntervalHours));
