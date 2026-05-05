@@ -28,7 +28,7 @@
     }
   ],
   "triggers": {
-    "crons": ["0 */3 * * *"]
+    "crons": ["30 0 * * *"]
   },
   "vars": {
     "POST_LIMIT": "20",
